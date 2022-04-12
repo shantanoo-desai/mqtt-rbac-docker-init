@@ -1,0 +1,64 @@
+#    Copyright 2022 Shantanoo "Shan" Desai <shantanoo.desai@gmail.com>
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+version: '3.7'
+
+# mqtt-dynsec volume is used to share the generated Dynamic Security JSOn
+# File to the main Mosquitto MQTT Broker Container
+volumes:
+  mqtt-dynsec:
+
+services:
+  mosquitto-broker:
+    image: eclipse-mosquitto:${vMQTT}
+    container_name: mqtt-broker-rbac
+    hostname: mqtt-broker-rbac # Important, used by Cedalo MQTT Mgmt Center
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-dynsec:/mosquitto/config # Shared Volume from Init Container, to obtain JSON file
+    networks:
+      - proxy-network
+
+  # Docker Init Containers, available from Compose v1.29
+  # Will Execute the Script once Mosquitto Service has Started
+  # Will Generate Dynamic Security JSON File and store it in 
+  # dedicated `mqtt-dynsec` volume
+  mqtt-init:
+    image: eclipse-mosquitto:${vMQTT} 
+    env_file:
+      - mosquitto.env
+    command:
+      - /dynsec-setup.sh
+    volumes:
+      - ./scripts/dynsec-setup.sh:/dynsec-setup.sh
+      - mqtt-dynsec:/mosquitto/config
+    depends_on:
+      mqtt:
+        condition: service_started
+  
+  # Cedalo MQTT Management Center Web based UI for RBAC management
+  mqtt-mgmt:
+    image: cedalo/management-center:2.3.4
+    container_name: mgmt-center
+    ports:
+      - "8088:8088"
+    env_file:
+      - cedalo.env
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
