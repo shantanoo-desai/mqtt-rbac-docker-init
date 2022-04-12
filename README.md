@@ -50,6 +50,7 @@ docker compose down --volumes # purge the created JSON file if you want to resta
 ### Availability
 
 | Service | Port |
+|:--------|:-----|
 | MQTT Broker | `1883` |
 | MQTT management Center | `8088` |
 
