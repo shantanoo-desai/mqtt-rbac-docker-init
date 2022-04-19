@@ -45,7 +45,7 @@ services:
       - ./scripts/dynsec-setup.sh:/dynsec-setup.sh
       - mqtt-dynsec:/mosquitto/config
     depends_on:
-      mqtt:
+      mosquitto-broker:
         condition: service_started
   
   # Cedalo MQTT Management Center Web based UI for RBAC management
